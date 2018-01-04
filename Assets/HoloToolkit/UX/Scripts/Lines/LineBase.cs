@@ -28,7 +28,10 @@ namespace HoloToolkit.Unity.UX
         [Range(0f, 1f)]
         [Tooltip("Clamps the line's normalized end point. This setting will affect line renderers.")]
         public float LineEndClamp = 1f;
-        
+        [Tooltip("Transform to use when translating points from local to world space. If null, this object's transform is used.")]
+        [SerializeField]
+        protected Transform customLineTransform;
+
         public virtual bool Loops
         {
             get
@@ -74,7 +77,7 @@ namespace HoloToolkit.Unity.UX
         [Tooltip("Controls whether this line loops (Note: some classes override this setting)")]
         [SerializeField]
         protected bool loops = false;
-
+        
         #endregion
 
         #region abstract
@@ -106,7 +109,7 @@ namespace HoloToolkit.Unity.UX
         /// <returns></returns>
         protected virtual Vector3 GetUpVectorInternal(float normalizedLength)
         {
-            return transform.forward;
+            return LineTransform.forward;
         }
 
         /// <summary>
@@ -141,6 +144,14 @@ namespace HoloToolkit.Unity.UX
             set
             {
                 SetPoint(NumPoints - 1, value);
+            }
+        }
+
+        public Transform LineTransform
+        {
+            get
+            {
+                return customLineTransform != null ? customLineTransform : transform;
             }
         }
 
@@ -246,14 +257,14 @@ namespace HoloToolkit.Unity.UX
 
                 case RotationTypeEnum.RelativeToOrigin:
                     Vector3 point = GetPoint(normalizedLength);
-                    Vector3 origin = transform.TransformPoint(OriginOffset);
+                    Vector3 origin = LineTransform.TransformPoint(OriginOffset);
                     rotationVector = (point - origin).normalized;
                     break;
             }
 
             if (rotationVector.magnitude < MinRotationMagnitude)
             {
-                return transform.rotation;
+                return LineTransform.rotation;
             }
 
             Vector3 upVector = GetUpVectorInternal(normalizedLength);
@@ -291,7 +302,7 @@ namespace HoloToolkit.Unity.UX
         public Vector3 GetPoint(float normalizedLength)
         {
             normalizedLength = ClampedLength(normalizedLength);
-            return DistortPoint (transform.TransformPoint(GetPointInternal(normalizedLength)), normalizedLength);
+            return DistortPoint (LineTransform.TransformPoint(GetPointInternal(normalizedLength)), normalizedLength);
         }
 
         /// <summary>
@@ -302,7 +313,7 @@ namespace HoloToolkit.Unity.UX
         public Vector3 GetUnclampedPoint(float normalizedLength)
         {
             normalizedLength = Mathf.Clamp01(normalizedLength);
-            return DistortPoint(transform.TransformPoint(GetPointInternal(normalizedLength)), normalizedLength);
+            return DistortPoint(LineTransform.TransformPoint(GetPointInternal(normalizedLength)), normalizedLength);
         }
 
         /// <summary>
@@ -317,7 +328,7 @@ namespace HoloToolkit.Unity.UX
                 throw new System.IndexOutOfRangeException();
             }
 
-            return transform.TransformPoint(GetPointInternal(pointIndex));
+            return LineTransform.TransformPoint(GetPointInternal(pointIndex));
         }
 
         /// <summary>
@@ -333,7 +344,7 @@ namespace HoloToolkit.Unity.UX
                 throw new System.IndexOutOfRangeException();
             }
 
-            SetPointInternal(pointIndex, transform.InverseTransformPoint(point));
+            SetPointInternal(pointIndex, LineTransform.InverseTransformPoint(point));
         }
 
         public virtual void AppendPoint(Vector3 point)

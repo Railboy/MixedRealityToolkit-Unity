@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿//
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
-
+//
 using HoloToolkit.Unity;
 using System.Collections.Generic;
 using UnityEngine;
@@ -52,9 +53,9 @@ namespace HoloToolkit.Unity.UX
 
             if (onWillRenderHelper == null)
             {   // OnWillRenderObject won't be called unless there's a renderer attached
-                // and if the renderer's bounds are visible.
+                // and if the renderer's bounds are visbile.
                 // So we create a simple 1-triangle mesh to ensure it's always called.
-                // Hacky, but it works.
+                // Hackey, but it works.
                 onWillRenderHelper = gameObject.AddComponent<MeshRenderer>();
                 onWillRenderHelper.receiveShadows = false;
                 onWillRenderHelper.shadowCastingMode = ShadowCastingMode.Off;
