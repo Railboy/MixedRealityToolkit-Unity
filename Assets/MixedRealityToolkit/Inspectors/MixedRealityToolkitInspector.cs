@@ -3,7 +3,11 @@
 
 using Microsoft.MixedReality.Toolkit.Core.Definitions;
 using Microsoft.MixedReality.Toolkit.Core.Extensions.EditorClassExtensions;
+using Microsoft.MixedReality.Toolkit.Core.Interfaces;
 using Microsoft.MixedReality.Toolkit.Core.Services;
+using Microsoft.MixedReality.Toolkit.Core.Utilities.Facades;
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -103,6 +107,108 @@ namespace Microsoft.MixedReality.Toolkit.Core.Inspectors
             var playspace = MixedRealityToolkit.Instance.MixedRealityPlayspace;
             Debug.Assert(playspace != null);
             EditorGUIUtility.PingObject(MixedRealityToolkit.Instance);
+        }
+    }
+
+    [InitializeOnLoad]
+    public static class MixedRealityToolkitFacadeHandler
+    {
+        private static List<Transform> childrenToDelete = new List<Transform>();
+        private static List<ServiceFacade> childrenToSort = new List<ServiceFacade>();
+
+        static MixedRealityToolkitFacadeHandler()
+        {
+            SceneView.onSceneGUIDelegate += UpdateServiceFacades;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange obj)
+        {
+            MixedRealityToolkit mrtk = MixedRealityToolkit.Instance;
+            if (mrtk == null)
+                return;
+
+            // When the play state changes just nuke everything and start over
+
+            childrenToDelete.Clear();
+            foreach (Transform child in mrtk.transform)
+                childrenToDelete.Add(child);
+
+            foreach (Transform child in childrenToDelete)
+                GameObject.DestroyImmediate(child.gameObject);
+
+            childrenToDelete.Clear();
+            childrenToSort.Clear();
+        }
+
+        private static void UpdateServiceFacades(SceneView sceneView)
+        {
+            MixedRealityToolkit mrtk = MixedRealityToolkit.Instance;
+            if (mrtk == null)
+                return;
+
+            childrenToSort.Clear();
+            
+            int facadeIndex = 0;
+            foreach (IMixedRealityService service in MixedRealityToolkit.ActiveSystems.Values)
+            {
+                facadeIndex = CreateFacade(mrtk.transform, service, facadeIndex, false);
+            }
+
+            foreach (Tuple<Type,IMixedRealityService> registeredService in MixedRealityToolkit.RegisteredMixedRealityServices)
+            {
+                facadeIndex = CreateFacade(mrtk.transform, registeredService.Item2, facadeIndex, true);
+            }
+
+            childrenToSort.Sort(
+                delegate (ServiceFacade s1, ServiceFacade s2) 
+                { return s1.Service.Priority.CompareTo(s2.Service.Priority); });
+
+            for (int i = 0; i < childrenToSort.Count; i++)
+                childrenToSort[i].transform.SetSiblingIndex(i);
+            
+            childrenToDelete.Clear();
+            for (int i = facadeIndex; i < mrtk.transform.childCount; i++)
+                childrenToDelete.Add(mrtk.transform.GetChild(i));
+
+            foreach (Transform childToDelete in childrenToDelete)
+                GameObject.DestroyImmediate(childToDelete.gameObject);
+        }
+
+        private static int CreateFacade(Transform parent, IMixedRealityService service, int facadeIndex, bool registeredService)
+        {
+            ServiceFacade facade = null;
+            if (facadeIndex > parent.transform.childCount - 1)
+            {
+                GameObject facadeObject = new GameObject();
+                facadeObject.transform.parent = parent;
+                facade = facadeObject.AddComponent<ServiceFacade>();
+            }
+            else
+            {
+                Transform child = parent.GetChild(facadeIndex);
+                facade = child.GetComponent<ServiceFacade>();
+                if (facade == null)
+                {
+                    facade = child.gameObject.AddComponent<ServiceFacade>();
+                }
+            }
+
+            if (facade.transform.hasChanged)
+            {
+                facade.transform.localPosition = Vector3.zero;
+                facade.transform.localRotation = Quaternion.identity;
+                facade.transform.localScale = Vector3.one;
+                facade.transform.hasChanged = false;
+            }
+
+            facade.SetService(service, registeredService);
+
+            childrenToSort.Add(facade);
+
+            facadeIndex++;
+
+            return facadeIndex;
         }
     }
 }

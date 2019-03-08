@@ -11,6 +11,7 @@ using Microsoft.MixedReality.Toolkit.Core.Interfaces.InputSystem;
 using Microsoft.MixedReality.Toolkit.Core.Interfaces.SpatialAwarenessSystem;
 using Microsoft.MixedReality.Toolkit.Core.Interfaces.TeleportSystem;
 using Microsoft.MixedReality.Toolkit.Core.Utilities;
+using Microsoft.MixedReality.Toolkit.Core.Utilities.Facades;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -433,7 +434,7 @@ namespace Microsoft.MixedReality.Toolkit.Core.Services
                     if (instance != null)
                     {
                         Debug.Assert(instance.transform.parent == null, "The MixedRealityToolkit should not be parented under any other GameObject!");
-                        Debug.Assert(instance.transform.childCount == 0, "The MixedRealityToolkit should not have GameObject children!");
+                        //Debug.Assert(instance.transform.childCount == 0, "The MixedRealityToolkit should not have GameObject children!");
                     }
                 };
 #endif // UNITY_EDITOR
@@ -1409,5 +1410,6 @@ namespace Microsoft.MixedReality.Toolkit.Core.Services
         private static bool logDiagnosticsSystem = true;
 
         #endregion Core System Accessors
-    }
+    
+}
 }
