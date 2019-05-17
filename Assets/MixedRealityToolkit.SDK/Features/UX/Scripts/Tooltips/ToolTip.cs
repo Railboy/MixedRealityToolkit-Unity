@@ -344,6 +344,14 @@ namespace Microsoft.MixedReality.Toolkit.UI
             gameObject.EnsureComponent<ToolTipConnector>();
         }
 
+        protected virtual void Awake()
+        {
+            // Cache our label text
+            cachedLabelText = label.GetComponent<TextMeshPro>();
+            // Force our text to refresh (this prevents the background from becoming unreasonably huge)
+            cachedLabelText.ignoreVisibility = true;
+        }
+
         /// <summary>
         /// virtual functions
         /// </summary>
@@ -353,11 +361,15 @@ namespace Microsoft.MixedReality.Toolkit.UI
 
             // Get our line if it exists
             if (toolTipLine == null)
+            {
                 toolTipLine = gameObject.GetComponent<BaseMixedRealityLineDataProvider>();
+            }
 
             // Make sure the tool tip text isn't empty
             if (string.IsNullOrEmpty(toolTipText))
+            {
                 toolTipText = " ";
+            }
 
             backgrounds.Clear();
             foreach (IToolTipBackground background in GetComponents(typeof(IToolTipBackground)))
@@ -371,6 +383,8 @@ namespace Microsoft.MixedReality.Toolkit.UI
                 highlights.Add(highlight);
             }
 
+            prevTextLength = -1;
+            prevTextHash = -1;
             RefreshLocalContent();
 
             contentParent.SetActive(false);
@@ -429,9 +443,6 @@ namespace Microsoft.MixedReality.Toolkit.UI
             {
                 prevTextHash = currentTextHash;
                 prevTextLength = currentTextLength;
-
-                if (cachedLabelText == null)
-                    cachedLabelText = label.GetComponent<TextMeshPro>();
 
                 if (cachedLabelText != null && !string.IsNullOrEmpty(toolTipText))
                 {
