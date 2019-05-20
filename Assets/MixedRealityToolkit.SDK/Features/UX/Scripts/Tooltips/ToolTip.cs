@@ -3,6 +3,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 //
 using Microsoft.MixedReality.Toolkit.Utilities;
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -350,6 +351,7 @@ namespace Microsoft.MixedReality.Toolkit.UI
             cachedLabelText = label.GetComponent<TextMeshPro>();
             // Force our text to refresh (this prevents the background from becoming unreasonably huge)
             cachedLabelText.ignoreVisibility = true;
+            cachedLabelText.onCullStateChanged.AddListener(CachedLabelTextOnCullStateChanged);
         }
 
         /// <summary>
@@ -579,6 +581,13 @@ namespace Microsoft.MixedReality.Toolkit.UI
             localScale.y = textMesh.transform.worldToLocalMatrix.MultiplyVector(rendererScale).y * transformScale.y;
 
             return localScale;
+        }
+
+        private void CachedLabelTextOnCullStateChanged(bool visible)
+        {
+            prevTextLength = -1;
+            prevTextHash = -1;
+            RefreshLocalContent();
         }
 
         private void ValidateHeirarchy()
