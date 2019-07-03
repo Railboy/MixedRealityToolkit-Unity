@@ -17,12 +17,6 @@ public abstract class MemoryTestsBase : MonoBehaviour
 
         EnqueueActions(actions);
 
-        // Call all these actions now to get JIT allocations out of the way
-        foreach (Action a in actions)
-        {
-            a();
-        }
-
         actions.Enqueue(() => Debug.Log("Finished testing " + this.GetType().Name));
 
         yield return null;

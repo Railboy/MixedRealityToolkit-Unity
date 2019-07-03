@@ -91,6 +91,11 @@ public class LinqMemoryTests : MemoryTestsBase
             keyClass2, valueClass2,
             keyClass3, valueClass3,
             1));
+
+        actions.Enqueue(() => OrderByList<int>(1, 2, 3));
+        actions.Enqueue(() => OrderByList<string>("value1", "value2", "value3"));
+        actions.Enqueue(() => OrderByList<ValueStruct>(valueStruct1, valueStruct2, valueStruct3));
+        actions.Enqueue(() => OrderByList<ValueClass>(valueClass1, valueClass2, valueClass3));
     }
 
     private void GetFirstFromList<T>(T value1, T value2, T value3)
@@ -131,7 +136,7 @@ public class LinqMemoryTests : MemoryTestsBase
         string message = "-- SelectWhereValueInList " + typeof(T).Name;
 
         List<T> list = new List<T>() { value1, value2, value3 };
-
+        
         Profiler.BeginSample(message);
         IEnumerable<T> result = list.Where(v => v.Matches(checkValue));
         Profiler.EndSample();
@@ -145,6 +150,17 @@ public class LinqMemoryTests : MemoryTestsBase
 
         Profiler.BeginSample(message);
         IEnumerable<KeyValuePair<K,V>> result = dict.Where(v => v.Key.Matches(checkValue));
+        Profiler.EndSample();
+    }
+
+    private void OrderByList<T>(T value1, T value2, T value3)
+    {
+        string message = "-- OrderByList " + typeof(T).Name;
+
+        List<T> list = new List<T>() { value1, value2, value3 };
+
+        Profiler.BeginSample(message);
+        IEnumerable<T> result = list.OrderBy(v => v);
         Profiler.EndSample();
     }
 }
