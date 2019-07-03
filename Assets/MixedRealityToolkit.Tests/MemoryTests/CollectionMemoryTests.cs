@@ -180,7 +180,13 @@ public class CollectionMemoryTests : MemoryTestsBase
         actions.Enqueue(() => GetDictFromProperties<string,string>("key", "value"));
         actions.Enqueue(() => GetDictFromProperties<KeyStruct,ValueStruct>(keyStruct, valueStruct));
         actions.Enqueue(() => GetDictFromProperties<KeyClass,ValueClass>(keyClass, valueClass));
-        actions.Enqueue(() => GetDictFromProperties<KeyClassCustomHashCode, ValueClassCustomHashCode>(keyClassCustomHashCode1, valueClassCustomHashCode1));
+        actions.Enqueue(() => GetDictFromProperties<KeyClassCustomHashCode, ValueClassCustomHashCode>(keyClassCustomHashCode, valueClassCustomHashCode));
+
+        actions.Enqueue(() => TryGetValueFromDictionary<int, int>(0, 0, 0));
+        actions.Enqueue(() => TryGetValueFromDictionary<string, string>("key", "value", "key"));
+        actions.Enqueue(() => TryGetValueFromDictionary<KeyStruct, ValueStruct>(keyStruct, valueStruct, keyStruct));
+        actions.Enqueue(() => TryGetValueFromDictionary<KeyClass, ValueClass>(keyClass, valueClass, keyClass));
+        actions.Enqueue(() => TryGetValueFromDictionary<KeyClassCustomHashCode, ValueClassCustomHashCode>(keyClassCustomHashCode, valueClassCustomHashCode, keyClassCustomHashCode));
     }
 
     private void EnumerateOverArray<T>(T v1, T v2, T v3)
@@ -287,15 +293,29 @@ public class CollectionMemoryTests : MemoryTestsBase
         Profiler.EndSample();
     }
 
+    private void TryGetValueFromDictionary<K,V>(K key, V value, K keyToTry)
+    {
+        string createMessage = "-- Create and fill Dictionary " + typeof(K).Name + ", " + typeof(V).Name;
+        Profiler.BeginSample(createMessage);
+        Dictionary<K, V> dict = new Dictionary<K, V>() { { key, value } };
+        Profiler.EndSample();
+
+        V v = default(V);
+
+        Profiler.BeginSample("--Try get value");
+        dict.TryGetValue(keyToTry, out v);
+        Profiler.EndSample();
+    }
+
     private void GetListFromProperties<T>()
     {
         ListPropertyClass<T> list = new ListPropertyClass<T>();
 
-        string directReference = "DirectReference " + typeof(T).Name;
-        string readOnlyList = "ReadOnlyList " + typeof(T).Name;
-        string enumerableDirect = "EnumerableDirect " + typeof(T).Name;
-        string readOnlyCollection = "ReadOnlyCollection " + typeof(T).Name;
-        string readOnlyCollectionDirect = "ReadOnlyCollectionDirect " + typeof(T).Name;
+        string directReference = "-- DirectReference " + typeof(T).Name;
+        string readOnlyList = "-- ReadOnlyList " + typeof(T).Name;
+        string enumerableDirect = "-- EnumerableDirect " + typeof(T).Name;
+        string readOnlyCollection = "-- ReadOnlyCollection " + typeof(T).Name;
+        string readOnlyCollectionDirect = "-- ReadOnlyCollectionDirect " + typeof(T).Name;
 
         Profiler.BeginSample(directReference);
         foreach (T t in list.DirectReference) { }
@@ -322,9 +342,9 @@ public class CollectionMemoryTests : MemoryTestsBase
     {
         HashSetPropertyClass<T> hashSet = new HashSetPropertyClass<T>();
 
-        string directReference = "DirectReference " + typeof(T).Name;
-        string enumerable = "Enumerable " + typeof(T).Name;
-        string readOnlyCollection = "ReadOnlyCollection " + typeof(T).Name;
+        string directReference = "-- DirectReference " + typeof(T).Name;
+        string enumerable = "-- Enumerable " + typeof(T).Name;
+        string readOnlyCollection = "-- ReadOnlyCollection " + typeof(T).Name;
 
         Profiler.BeginSample(directReference);
         foreach (T t in hashSet.DirectReference) { }

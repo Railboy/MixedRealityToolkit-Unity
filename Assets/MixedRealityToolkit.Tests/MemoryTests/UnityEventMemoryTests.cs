@@ -98,7 +98,7 @@ public class UnityEventMemoryTests : MemoryTestsBase
 
     private void InvokeEvent<T,E>(T e, string type) where T : UnityEvent<E>
     {
-        string message = "--Invoke " + typeof(T).Name + ": " + type;
+        string message = "-- Invoke " + typeof(T).Name + ": " + type;
 
         E arg = default(E);
 
@@ -109,7 +109,7 @@ public class UnityEventMemoryTests : MemoryTestsBase
 
     private void InvokeEvent<T>(T e, string type) where T : UnityEvent
     {
-        string message = "--Invoke " + typeof(T).Name + ": " + type;
+        string message = "-- Invoke " + typeof(T).Name + ": " + type;
 
         Profiler.BeginSample(message);
         e.Invoke();
