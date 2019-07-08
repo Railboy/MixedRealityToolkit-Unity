@@ -11,7 +11,12 @@ public abstract class MemoryTestsBase : MonoBehaviour
 
     protected abstract void EnqueueActions(Queue<Action> actions);
 
-    private IEnumerator Start()
+    private void OnEnable()
+    {
+        StartCoroutine(RunTests());
+    }
+
+    private IEnumerator RunTests()
     {
         Profiler.enabled = false;
 
@@ -39,7 +44,8 @@ public abstract class MemoryTestsBase : MonoBehaviour
         }
         else
         {
-            Debug.Break();
+            executeTests = false;
+            enabled = false;
         }
     }
 }
