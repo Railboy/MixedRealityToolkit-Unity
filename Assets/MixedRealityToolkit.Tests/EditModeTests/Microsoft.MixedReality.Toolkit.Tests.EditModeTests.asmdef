@@ -8,7 +8,9 @@
         "Microsoft.MixedReality.Toolkit.SDK",
         "Microsoft.MixedReality.Toolkit.Services.InputSystem",
         "Microsoft.MixedReality.Toolkit.Services.InputSimulation",
-        "Microsoft.MixedReality.Toolkit.Tests"
+        "Microsoft.MixedReality.Toolkit.Tests",
+        "Unity.PerformanceTesting",
+        "Unity.PerformanceTesting.Editor"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"
