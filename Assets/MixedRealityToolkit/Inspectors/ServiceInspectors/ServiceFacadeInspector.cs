@@ -62,7 +62,7 @@ namespace Microsoft.MixedReality.Toolkit.Utilities.Facades
                 logoDarkTheme = (Texture2D)AssetDatabase.LoadAssetAtPath(MixedRealityToolkitFiles.MapRelativeFilePath($"{assetPath}/MRTK_Logo_White.png"), typeof(Texture2D));
             }
         }
-
+		
         protected override void OnHeaderGUI()
         {
             ServiceFacade facade = (ServiceFacade)target;
@@ -83,6 +83,12 @@ namespace Microsoft.MixedReality.Toolkit.Utilities.Facades
 
             EditorGUI.LabelField(labelRect, header, EditorStyles.boldLabel);
         }
+		
+		// This ensures that inspector contents are updated even when inspector doesn't have focus.
+		public override bool RequiresConstantRepaint()
+		{
+			return true;
+		}
 
         public override void OnInspectorGUI()
         {
