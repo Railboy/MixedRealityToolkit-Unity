@@ -1,6 +1,12 @@
+#if PHOTON_UNITY_NETWORKING
+using Photon.Pun;
+using Photon.Realtime;
+using ExitGames.Client.Photon;
+#else
 // When Photon is not present some fields and events cause 'never used' warnings.
 #pragma warning disable CS0067
 #pragma warning disable CS0414
+#endif
 using Microsoft.MixedReality.Toolkit.Utilities;
 using System.Collections.Generic;
 using System.Threading;
@@ -8,11 +14,6 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.Collections;
 using System;
-#if PHOTON_UNITY_NETWORKING
-using Photon.Pun;
-using Photon.Realtime;
-using ExitGames.Client.Photon;
-#endif
 
 namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
 {
@@ -61,7 +62,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         /// <inheritdoc />
         public ConnectStatus Status { get; private set; } = ConnectStatus.NotConnected;
         /// <inheritdoc />
-        public AppRoleEnum AppRole { get; private set; } = AppRoleEnum.None;
+        public AppRole AppRole { get; private set; } = AppRole.None;
         /// <inheritdoc />
         public SubscriptionModeEnum LocalSubscriptionMode { get; private set; } = SubscriptionModeEnum.Default;
         /// <inheritdoc />
@@ -121,11 +122,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         // Connection
         private Task connectTask;
         private CancellationTokenSource connectTokenSource;
-        private AppRoleEnum currentRequestedRole = AppRoleEnum.None;
+        private AppRole currentRequestedRole = AppRole.None;
 
         // Subscriptions
-        private List<int> localSubscriptionTypes = new List<int>();
-        private Dictionary<string, HashSet<int>> subscribedTypes = new Dictionary<string, HashSet<int>>();
+        private List<short> localSubscriptionTypes = new List<short>();
+        private Dictionary<string, HashSet<short>> subscribedTypes = new Dictionary<string, HashSet<short>>();
         private Dictionary<string, SubscriptionModeEnum> subscriptionModes = new Dictionary<string, SubscriptionModeEnum>();
         private object[] eventDataReceiveSubscriptionMode = new object[3];
 
@@ -168,7 +169,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
             {
                 LobbyName = string.Empty,
                 RoomName = string.Empty,
-                RequestedRole = AppRoleEnum.None,
+                RequestedRole = AppRole.None,
                 SubscriptionMode = SubscriptionModeEnum.Default,
                 SubscriptionTypes = null,
             });
@@ -233,7 +234,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         }
 
         /// <inheritdoc />
-        public void SetLocalSubscriptionMode(SubscriptionModeEnum subscriptionMode, IEnumerable<int> subscriptionTypes = null)
+        public void SetLocalSubscriptionMode(SubscriptionModeEnum subscriptionMode, IEnumerable<short> subscriptionTypes = null)
         {
             if (!Application.isPlaying)
             {
@@ -303,7 +304,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         }
 
         /// <inheritdoc />
-        public bool IsLocalDeviceSubscribedToType(int type)
+        public bool IsLocalDeviceSubscribedToType(short type)
         {
             if (!CheckConnectionAndPlayMode("check local subscriptions", ConnectStatus.Connected))
             {
@@ -318,7 +319,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         }
 
         /// <inheritdoc />
-        public bool IsDeviceSubscribedToType(short deviceID, int type)
+        public bool IsDeviceSubscribedToType(short deviceID, short type)
         {
             if (!deviceIdToUserIDLookup.TryGetValue(deviceID, out string userID))
             {
@@ -330,7 +331,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         }
 
         /// <inheritdoc />
-        public void SetLocalSubscription(int dataType, bool subscribed)
+        public void SetLocalSubscription(short dataType, bool subscribed)
         {
             if (!Application.isPlaying)
             {
@@ -440,7 +441,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
 
             nextDeviceID = 1;
             localDeviceID = -1;
-            currentRequestedRole = AppRoleEnum.None;
+            currentRequestedRole = AppRole.None;
 
 #if PHOTON_UNITY_NETWORKING
             PhotonNetwork.AddCallbackTarget(this);
@@ -523,7 +524,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
             return true;
         }
 
-        private bool IsPhotonPlayerSubscribedToType(string userID, int type)
+        private bool IsPhotonPlayerSubscribedToType(string userID, short type)
         {
             SubscriptionModeEnum modeForPlayer = SubscriptionModeEnum.All;
             // If we don't have a subscription entry for this player then they're subscribed by default
@@ -539,7 +540,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                     return true;
 
                 case SubscriptionModeEnum.Manual:
-                    if (subscribedTypes.TryGetValue(userID, out HashSet<int> subscriptions))
+                    if (subscribedTypes.TryGetValue(userID, out HashSet<short> subscriptions))
                     {
                         return subscriptions.Contains(type);
                     }
@@ -561,9 +562,9 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         {
             targetActors.Clear();
 
-            switch (args.SendMode)
+            switch (args.TargetMode)
             {
-                case SendMode.Default:
+                case TargetMode.Default:
                 default:
                     {
                         // Everyone who is subscribed receives the data including sender.
@@ -577,7 +578,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                     }
                     break;
 
-                case SendMode.SkipSender:
+                case TargetMode.SkipSender:
                     {
                         // Everyone except the local player who is subscribed receives the data including sender.
                         foreach (Player player in PhotonNetwork.PlayerList)
@@ -590,11 +591,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                     }
                     break;
 
-                case SendMode.ManualTargets:
+                case TargetMode.Manual:
                     {
                         if (args.Targets == null)
                         {
-                            Debug.LogError("Targets must not be null when send mode is set to " + args.SendMode);
+                            Debug.LogError("Targets must not be null when send mode is set to " + args.TargetMode);
                             return;
                         }
 
@@ -627,21 +628,14 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
             }
         }
 
-        private void ReceiveSubscriptionMode(SubscriptionModeEnum newSubscriptionMode, int[] newSubscriptionTypes, string userID)
+        private void ReceiveSubscriptionMode(SubscriptionModeEnum newSubscriptionMode, short[] newSubscriptionTypes, string userID)
         {
-            Debug.Log("Receiving subscription mode: " + newSubscriptionMode);
-            if (newSubscriptionTypes != null)
-            {
-                foreach (int st in newSubscriptionTypes)
-                    Debug.Log(st);
-            }
-
             subscriptionModes[userID] = newSubscriptionMode;
 
-            HashSet<int> stateTypes;
+            HashSet<short> stateTypes;
             if (!subscribedTypes.TryGetValue(userID, out stateTypes))
             {
-                stateTypes = new HashSet<int>();
+                stateTypes = new HashSet<short>();
                 subscribedTypes.Add(userID, stateTypes);
             }
 
@@ -658,7 +652,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                         Debug.LogError("Subscription types cannot be null when subscription is manual");
                     }
 
-                    foreach (int newStateType in newSubscriptionTypes)
+                    foreach (short newStateType in newSubscriptionTypes)
                     {
                         stateTypes.Add(newStateType);
                     }
@@ -689,20 +683,20 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         {
             string lobbyName = string.IsNullOrEmpty(config.LobbyName) ? sharingServiceProfile.DefaultLobbyName : config.LobbyName;
             string roomName = string.IsNullOrEmpty(config.RoomName) ? sharingServiceProfile.DefaultRoomName : config.RoomName;
-            currentRequestedRole = (config.RequestedRole == AppRoleEnum.None) ? sharingServiceProfile.DefaultRequestedRole : config.RequestedRole;
+            currentRequestedRole = (config.RequestedRole == AppRole.None) ? sharingServiceProfile.DefaultRequestedRole : config.RequestedRole;
 
             // If we've set the subscription mode before connecting, use that instead of our default subscription mode
             SubscriptionModeEnum currentSubscriptionMode = (LocalSubscriptionMode == SubscriptionModeEnum.Default) ? sharingServiceProfile.DefaultSubscriptionMode : LocalSubscriptionMode;
-            IEnumerable<int> currentSubscriptionTypes = (LocalSubscriptionMode != SubscriptionModeEnum.Manual) ? sharingServiceProfile.DefaultSubscriptionTypes : localSubscriptionTypes;
+            IEnumerable<short> currentSubscriptionTypes = (LocalSubscriptionMode != SubscriptionModeEnum.Manual) ? sharingServiceProfile.DefaultSubscriptionTypes : localSubscriptionTypes;
 
             // If the config specifies a subscription mode, use that instead of our current subscription mode
             SubscriptionModeEnum subscriptionMode = (config.SubscriptionMode == SubscriptionModeEnum.Default) ? currentSubscriptionMode : config.SubscriptionMode;
-            IEnumerable<int> subscriptionTypes = (config.SubscriptionMode != SubscriptionModeEnum.Manual) ? currentSubscriptionTypes : config.SubscriptionTypes;
+            IEnumerable<short> subscriptionTypes = (config.SubscriptionMode != SubscriptionModeEnum.Manual) ? currentSubscriptionTypes : config.SubscriptionTypes;
 
             float timeAttemptStarted = Time.realtimeSinceStartup;
 
             Status = ConnectStatus.Connecting;
-            AppRole = AppRoleEnum.None;
+            AppRole = AppRole.None;
             LobbyName = string.Empty;
             RoomName = string.Empty;
 
@@ -787,13 +781,13 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
             }
             while (!PhotonNetwork.InRoom);
 
-            if (currentRequestedRole != AppRoleEnum.None)
+            if (currentRequestedRole != AppRole.None)
             {
                 AppRole = currentRequestedRole;
             }
             else
             {
-                AppRole = PhotonNetwork.IsMasterClient ? AppRoleEnum.Host : AppRoleEnum.Client;
+                AppRole = PhotonNetwork.IsMasterClient ? AppRole.Host : AppRole.Client;
             }
 
             Status = ConnectStatus.Connected;
@@ -858,7 +852,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
 
             switch (AppRole)
             {
-                case AppRoleEnum.None:
+                case AppRole.None:
                     // Deal with this when we're connected
                     Debug.Log("(Adding as unhandled event, we'll deal with this later.)");
                     unhandledLocalEvents.Enqueue(new UnhandledLocalEvent()
@@ -868,7 +862,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                     });
                     return;
 
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     // Let the server handle this
                     return;
 
@@ -923,7 +917,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
 
             switch (AppRole)
             {
-                case AppRoleEnum.None:
+                case AppRole.None:
                     Debug.Log("(Adding as unhandled event, we'll deal with this later.)");
                     // Deal with this when we're connected
                     unhandledLocalEvents.Enqueue(new UnhandledLocalEvent()
@@ -933,7 +927,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                     });
                     return;
 
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     // Let the server handle this
                     return;
 
@@ -985,7 +979,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         {
             switch (AppRole)
             {
-                case AppRoleEnum.None:
+                case AppRole.None:
                     unhandledRemoteEvents.Enqueue(new UnhandledRemoteEvent()
                     {
                         Type = UnhandledRemoteEvent.TypeEnum.Add,
@@ -1007,7 +1001,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         {
             switch (AppRole)
             {
-                case AppRoleEnum.None:
+                case AppRole.None:
                     unhandledRemoteEvents.Enqueue(new UnhandledRemoteEvent()
                     {
                         Type = UnhandledRemoteEvent.TypeEnum.Remove,
@@ -1077,38 +1071,38 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
         void IConnectionCallbacks.OnDisconnected(DisconnectCause cause)
         {
             // Reset everything to do with our connection
-            AppRole = AppRoleEnum.None;
+            AppRole = AppRole.None;
             Status = ConnectStatus.NotConnected;
             LobbyName = string.Empty;
             RoomName = string.Empty;
             LocalSubscriptionMode = SubscriptionModeEnum.Default;
             localSubscriptionTypes.Clear();
-            currentRequestedRole = AppRoleEnum.None;
+            currentRequestedRole = AppRole.None;
 
             Debug.Log("Disconnected from sharing service.");
 
             OnDisconnect?.Invoke(new ConnectEventArgs()
             {
                 Status = this.Status,
-                AppRole = AppRoleEnum.None,
+                AppRole = AppRole.None,
                 Message = cause.ToString()
             });
         }
 
         void IInRoomCallbacks.OnMasterClientSwitched(Player newMasterClient)
         {
-            if (currentRequestedRole != AppRoleEnum.None)
+            if (currentRequestedRole != AppRole.None)
             {
                 // The current requested role is set, so master client changes will have no effect.
                 return;
             }
 
-            AppRoleEnum newAppRole = (newMasterClient.UserId == PhotonNetwork.LocalPlayer.UserId) ? AppRoleEnum.Host : AppRoleEnum.Client;
+            AppRole newAppRole = (newMasterClient.UserId == PhotonNetwork.LocalPlayer.UserId) ? AppRole.Host : AppRole.Client;
 
             if (AppRole != newAppRole)
             {
                 AppRole = newAppRole;
-                Debug.Log("App role changed in sharing service: " + AppRole);
+                Debug.Log((object)("App role changed in sharing service: " + AppRole));
 
                 OnAppRoleSelected?.Invoke(new ConnectEventArgs()
                 {
@@ -1125,7 +1119,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                 case setSubscriptionEvent:
                     {
                         object[] data = (object[])photonEvent.CustomData;
-                        ReceiveSubscriptionMode((SubscriptionModeEnum)data[0], (int[])data[1], (string)data[2]);
+                        ReceiveSubscriptionMode((SubscriptionModeEnum)data[0], (short[])data[1], (string)data[2]);
                     }
                     break;
 
@@ -1134,7 +1128,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                         object[] data = (object[])photonEvent.CustomData;
                         OnReceiveData?.Invoke(new DataEventArgs()
                         {
-                            Type = (int)data[0],
+                            Type = (short)data[0],
                             Data = (byte[])data[1],
                             Sender =(short)data[2],
                         });

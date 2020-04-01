@@ -13,18 +13,18 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 	{
 		public bool AutoConnectOnStartup => autoConnectOnStartup;
 		public float ConnectAttemptTimeout => connectAttemptTimeout;
-		public AppRoleEnum DefaultRequestedRole => defaultRequestedRole;
+		public AppRole DefaultRequestedRole => defaultRequestedRole;
 		public string DefaultLobbyName => defaultLobbyName;
 		public string DefaultRoomName => defaultRoomName;
 		public SubscriptionModeEnum DefaultSubscriptionMode => defaultSubscriptionMode;
-		public IEnumerable<int> DefaultSubscriptionTypes => defaultSubscriptionTypes;
+		public IEnumerable<short> DefaultSubscriptionTypes => defaultSubscriptionTypes;
 
 		[SerializeField, Tooltip("If true, the service will connect once enabled.")]
 		private bool autoConnectOnStartup = false;
 		[SerializeField, Tooltip("How long to wait before giving up on a connect request.")]
 		private float connectAttemptTimeout = 10f;
 		[SerializeField, Tooltip("The app role to be used if none is specified when connecting.")]
-		private AppRoleEnum defaultRequestedRole = AppRoleEnum.None;
+		private AppRole defaultRequestedRole = AppRole.None;
 		[SerializeField, Tooltip("The lobby name to be used if none is specified when connecting.")]
 		private string defaultLobbyName = "MRTKLobby";
 		[SerializeField, Tooltip("The room name to be used if none is specified when connecting.")]
@@ -32,7 +32,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 		[SerializeField, Tooltip("The subscription mode to be used if none is specified when connecting.")]
 		private SubscriptionModeEnum defaultSubscriptionMode = SubscriptionModeEnum.Default;
 		[SerializeField, Tooltip("Data types to be used if default subscription mode is set to manual.")]
-		private int[] defaultSubscriptionTypes = new int[0];
+		private short[] defaultSubscriptionTypes = new short[0];
 
 #if UNITY_EDITOR
 		[CustomEditor(typeof(SharingServiceProfile))]
