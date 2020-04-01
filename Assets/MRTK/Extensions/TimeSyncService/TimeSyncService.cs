@@ -70,7 +70,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         private float deltaTime;
         private float syncDelta;
 
-        // Server-only private fields
+        // Host-only private fields
         private float lastLatencyCheckTime;
         private float lastSyncTime;
         private HashSet<short> outstandingRequests = new HashSet<short>();
@@ -82,11 +82,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         #region Data type definitions
 
         // Ensure that these data types don't conflict with others in your project
-        private const int timeSyncDataType = 1000000;
-        private const int dataTypeServerRequestLatencyCheck = timeSyncDataType + 1;
-        private const int dataTypeClientRespondToLatencyCheck = timeSyncDataType + 2;
-        private const int dataTypeAllReceiveLatencyUpdate = timeSyncDataType + 3;
-        private const int dataTypeReceiveServerTargetTime = timeSyncDataType + 4;
+        private const short timeSyncDataType = 200;
+        private const short dataTypeHostRequestLatencyCheck = timeSyncDataType + 1;
+        private const short dataTypeClientRespondToLatencyCheck = timeSyncDataType + 2;
+        private const short dataTypeAllReceiveLatencyUpdate = timeSyncDataType + 3;
+        private const short dataTypeReceiveHostTargetTime = timeSyncDataType + 4;
 
         #endregion
 
@@ -144,7 +144,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 return;
 
             float unityDeltaTime = timeSyncServiceProfile.UseUnscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
-            // Add unity's delta time to latest known server time
+            // Add unity's delta time to latest known host time
             // This will keep it updating at a steady rate between sync calls
             time += unityDeltaTime;
             // If time has drifted out of sync with our target time
@@ -165,7 +165,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     return;
 
                 default:
-                    // Server just uses target time directly
+                    // Host just uses target time directly
                     targetTime = Time;
                     ServerUpdateDevices();
                     break;
@@ -174,7 +174,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
         #endregion
 
-        #region Server->Client methods
+        #region Host->Client methods
 
         private void ReceiveServerTargetTime(TargetTimeData data)
         {
@@ -190,7 +190,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
             if (!deviceTimeStatuses.TryGetValue(sharingService.LocalDeviceID, out DeviceTimeStatus status))
             {
-                Debug.LogError("Couldn't get local device status in receive server target time.");
+                Debug.LogError("Couldn't get local device status in receive host target time.");
                 return;
             }
 
@@ -222,7 +222,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
         #endregion
 
-        #region Client->Server methods
+        #region Client->Host methods
 
         private void RespondToLatencyCheck(short deviceID, LatencyCheckData data)
         {
@@ -307,9 +307,9 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (e.Type)
             {
-                case dataTypeServerRequestLatencyCheck:
-                    {   // Server asked us to check our latency
-                        // Send the data directly back to the server, no need to deserialize
+                case dataTypeHostRequestLatencyCheck:
+                    {   // Host asked us to check our latency
+                        // Send the data directly back to the host, no need to deserialize
                         sharingService.SendData(new SendDataArgs()
                         {
                             Type = dataTypeClientRespondToLatencyCheck,
@@ -323,7 +323,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
                 case dataTypeClientRespondToLatencyCheck:
                     {   // Client responded to our latency check
-                        // Get the time stamp and send it back to the server
+                        // Get the time stamp and send it back to the host
                         LatencyCheckData data = Deserialize<LatencyCheckData>(e.Data);
                         RespondToLatencyCheck(e.Sender, data);
                     }
@@ -336,7 +336,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     }
                     break;
 
-                case dataTypeReceiveServerTargetTime:
+                case dataTypeReceiveHostTargetTime:
                     {
                         TargetTimeData data = Deserialize<TargetTimeData>(e.Data);
                         ReceiveServerTargetTime(data);
@@ -384,7 +384,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
                 sharingService.SendData(new SendDataArgs()
                 {
-                    Type = dataTypeReceiveServerTargetTime,
+                    Type = dataTypeReceiveHostTargetTime,
                     Data = Serialize<TargetTimeData>(new TargetTimeData() { TargetTime = targetTime }),
                     SendMode = SendMode.SkipSender,
                     DeliveryMode = DeliveryMode.Reliable,
@@ -408,7 +408,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     // Send a request to client for latency check
                     sharingService.SendData(new SendDataArgs()
                     {
-                        Type = dataTypeServerRequestLatencyCheck,
+                        Type = dataTypeHostRequestLatencyCheck,
                         Data = Serialize<LatencyCheckData>(new LatencyCheckData() { TimeRequestSent = targetTime }),
                         DeliveryMode = DeliveryMode.Reliable,
                         SendMode = SendMode.ManualTargets,
