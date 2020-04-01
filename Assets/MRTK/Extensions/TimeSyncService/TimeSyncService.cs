@@ -159,7 +159,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     // Client accumulates unity's delta time for its target time
                     targetTime += unityDeltaTime;
                     return;
@@ -180,7 +180,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     break;
 
                 default:
@@ -201,7 +201,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     break;
 
                 default:
@@ -228,7 +228,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     Debug.LogError("This should not be called on the client.");
                     return;
 
@@ -284,7 +284,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             sharingService.SendData(new SendDataArgs() 
             {
                 Type = dataTypeAllReceiveLatencyUpdate,
-                SendMode = SendMode.SkipSender,
+                TargetMode = TargetMode.SkipSender,
                 DeliveryMode = DeliveryMode.Reliable,
                 Data = latencyData,
             });
@@ -315,7 +315,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                             Type = dataTypeClientRespondToLatencyCheck,
                             Data = e.Data,
                             DeliveryMode = DeliveryMode.Reliable,
-                            SendMode = SendMode.ManualTargets,
+                            TargetMode = TargetMode.Manual,
                             Targets = new short[] { e.Sender },
                         });
                     }
@@ -370,7 +370,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     Debug.LogError("This should not be called on client.");
                     return;
 
@@ -386,7 +386,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 {
                     Type = dataTypeReceiveHostTargetTime,
                     Data = Serialize<TargetTimeData>(new TargetTimeData() { TargetTime = targetTime }),
-                    SendMode = SendMode.SkipSender,
+                    TargetMode = TargetMode.SkipSender,
                     DeliveryMode = DeliveryMode.Reliable,
                 });
             }
@@ -411,7 +411,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                         Type = dataTypeHostRequestLatencyCheck,
                         Data = Serialize<LatencyCheckData>(new LatencyCheckData() { TimeRequestSent = targetTime }),
                         DeliveryMode = DeliveryMode.Reliable,
-                        SendMode = SendMode.ManualTargets,
+                        TargetMode = TargetMode.Manual,
                         Targets = new short[] { status.DeviceID }
                     });
                 }
