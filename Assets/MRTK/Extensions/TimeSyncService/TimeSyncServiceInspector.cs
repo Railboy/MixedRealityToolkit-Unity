@@ -38,7 +38,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Editor
 			{
 				foreach (DeviceTimeStatus status in service.DeviceTimeStatuses)
 				{
-					GUI.color = (status.DeviceID == sharingService.LocalDeviceID) ? localDeviceColor : remoteDeviceColor;
+					GUI.color = (status.DeviceID == sharingService.LocalDevice.ID) ? localDeviceColor : remoteDeviceColor;
 
 					EditorGUILayout.Space();
 					EditorGUILayout.LabelField("Device " + status.DeviceID, EditorStyles.boldLabel);

@@ -188,7 +188,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     return;
             }
 
-            if (!deviceTimeStatuses.TryGetValue(sharingService.LocalDeviceID, out DeviceTimeStatus status))
+            if (!deviceTimeStatuses.TryGetValue(sharingService.LocalDevice.ID, out DeviceTimeStatus status))
             {
                 Debug.LogError("Couldn't get local device status in receive host target time.");
                 return;
@@ -354,18 +354,18 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             }
         }
 
-        private void OnDeviceConnected(DeviceEventArgs e)
+        private void OnDeviceConnected(DeviceInfo e)
         {
-            if (!deviceTimeStatuses.TryGetValue(e.DeviceID, out DeviceTimeStatus deviceTime))
+            if (!deviceTimeStatuses.TryGetValue(e.ID, out DeviceTimeStatus deviceTime))
             {
-                deviceTimeStatuses.Add(e.DeviceID, new DeviceTimeStatus() { DeviceID = e.DeviceID });
+                deviceTimeStatuses.Add(e.ID, new DeviceTimeStatus() { DeviceID = e.ID });
             }
             deviceTime.Active = true;
         }
 
-        private void OnDeviceDisconnected(DeviceEventArgs e)
+        private void OnDeviceDisconnected(DeviceInfo e)
         {
-            if (deviceTimeStatuses.TryGetValue(e.DeviceID, out DeviceTimeStatus deviceTime))
+            if (deviceTimeStatuses.TryGetValue(e.ID, out DeviceTimeStatus deviceTime))
             {
                 deviceTime.Active = false;
             }
@@ -409,7 +409,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     if (outstandingRequests.Contains(status.DeviceID))
                         continue;
 
-                    if (status.DeviceID == sharingService.LocalDeviceID)
+                    if (status.DeviceID == sharingService.LocalDevice.ID)
                         continue;
 
                     // Store an outstanding request so we don't accidentally double up on latency checks
