@@ -100,7 +100,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 return;
             }
 
-            sharingService.OnConnect += OnConnect;
+            sharingService.OnStatusChange += OnStatusChange;
             sharingService.OnReceiveData += OnReceiveData;
             sharingService.OnDeviceConnected += OnDeviceConnected;
             sharingService.OnDeviceDisconnected += OnDeviceDisconnected;
@@ -112,7 +112,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             // Ensure we're still subscribed to all of our data types
             switch (e.Mode)
             {
-                case SubscriptionModeEnum.Manual:
+                case SubscriptionMode.Manual:
                     sharingService.SetLocalSubscription(dataTypeAllReceiveLatencyUpdate, true);
                     sharingService.SetLocalSubscription(dataTypeClientRespondToLatencyCheck, true);
                     sharingService.SetLocalSubscription(dataTypeAllReceiveLatencyUpdate, true);
@@ -127,7 +127,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             if (sharingService != null)
             {
-                sharingService.OnConnect -= OnConnect;
+                sharingService.OnStatusChange -= OnStatusChange;
                 sharingService.OnDeviceConnected -= OnDeviceConnected;
                 sharingService.OnDeviceDisconnected -= OnDeviceDisconnected;
                 sharingService.OnReceiveData -= OnReceiveData;
@@ -298,9 +298,18 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
         #region Private event handling
 
-        private void OnConnect(ConnectEventArgs e)
+        private void OnStatusChange(StatusEventArgs e)
         {
-            started = true;
+            switch (e.Status)
+            {
+                case ConnectStatus.FullyConnected:
+                    started = true;
+                    break;
+
+                default:
+                    started = false;
+                    break;
+            }
         }
 
         private void OnReceiveData(DataEventArgs e)
