@@ -13,10 +13,23 @@ MonoBehaviour:
   m_Name: DefaultSharingServiceProfile
   m_EditorClassIdentifier: 
   isCustomProfile: 1
-  autoConnectOnStartup: 1
+  fastConnectOnStartup: 0
   connectAttemptTimeout: 10
   defaultRequestedRole: 0
-  defaultLobbyName: MRTKLobby
-  defaultRoomName: MRTKRoom
+  defaultRequestedDeviceType: 0
   defaultSubscriptionMode: 0
   defaultSubscriptionTypes: 
+  defaultRequestedName: Device
+  lobbyName: MRTKLobby
+  defaultRoomConfig:
+    Name: MRTKRoom
+    MaxDevices: 4
+    ExpireTime: 10000
+    DeviceExpireTime: 10000
+    VisibleInLobby: 1
+    RoomProps: []
+    LobbyProps: []
+  deviceTypeFinder:
+    reference: Microsoft.MixedReality.Toolkit.Extensions.Sharing.DefaultDeviceTypeFinder,
+      Assembly-CSharp
+  editorRequestedDeviceType: 1

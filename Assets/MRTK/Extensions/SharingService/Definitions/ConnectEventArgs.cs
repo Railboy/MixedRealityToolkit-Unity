@@ -1,9 +1,26 @@
-﻿namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 {
-    public struct ConnectEventArgs
+    /// <summary>
+    /// Struct describing a status change event.
+    /// </summary>
+    public struct StatusEventArgs
     {
+        /// <summary>
+        /// The current status of the device.
+        /// </summary>
         public ConnectStatus Status;
-        public AppRoleEnum AppRole;
+
+        /// <summary>
+        /// The current role of the device.
+        /// </summary>
+        public AppRole AppRole;
+
+        /// <summary>
+        /// Optional message for debug purposes.
+        /// </summary>
         public string Message;
     }
 }
