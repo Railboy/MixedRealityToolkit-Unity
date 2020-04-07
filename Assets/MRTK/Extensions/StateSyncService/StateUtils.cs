@@ -1,12 +1,18 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 
 namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 {
     public static class StateUtils
     {
+        private static List<string> stateStrings = new List<string>();
+        private static List<string> stateArrayStrings = new List<string>();
+        private static StringBuilder stateStringBuilder = new StringBuilder();
+
         public static Vector3 GetPredictedPos(Vector3 lastPos, Vector3 lastDir, float lastVelPerSecond, float lastTime, float currentTime, float latency)
         {
             predictedPos = lastPos;
@@ -30,28 +36,56 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             }
 
             Type type = itemState.GetType();
-            string itemStateString = includeTypeName ? type.ToString() : string.Empty;
+
+            stateStrings.Clear();
+
+            if (includeTypeName)
+            {
+                stateStrings.Add(type.Name);
+            }
+
             foreach (FieldInfo field in itemState.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
+                stateStringBuilder.Clear();
+                stateStringBuilder.Append(field.Name);
+                stateStringBuilder.Append(": ");
+
                 object value = field.GetValue(itemState);
                 if (value == null)
                 {
-                    itemStateString += "\n" + field.Name + ": (NULL)";
+                    stateStringBuilder.Append("(NULL)");
                 }
                 else
                 {
                     if (field.FieldType.IsArray)
                     {
+                        stateArrayStrings.Clear();
                         var array = (IEnumerable)value;
-                        itemStateString += "\n" + field.Name + ": " + string.Join(", ", array);
+                        IEnumerator enumerator = array.GetEnumerator();
+                        while (enumerator.MoveNext())
+                        {
+                            var current = enumerator.Current;
+                            stateArrayStrings.Add(current != null ? current.ToString() : "(NULL)");
+                        }
+                        if (stateArrayStrings.Count > 0)
+                        {
+                            string arrayValue = String.Join(", ", stateArrayStrings);
+                            stateStringBuilder.Append(arrayValue);
+                        }
+                        else
+                        {
+                            stateStringBuilder.Append("(Empty Array)");
+                        }
                     }
                     else
                     {
-                        itemStateString += "\n" + field.Name + ": " + value.ToString();
+                        stateStringBuilder.Append(value.ToString());
                     }
                 }
+
+                stateStrings.Add(stateStringBuilder.ToString());
             }
-            return itemStateString;
+            return String.Join("\n", stateStrings);
         }
 
         public static void ByteRotIn(Vector3 value, out byte rotX, out byte rotY, out byte rotZ)
@@ -213,43 +247,17 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         public static bool IsPositionValid(Vector3 value)
         {
             return !float.IsNaN(value.x) && !float.IsNaN(value.y) && !float.IsNaN(value.z);
-        }     
+        }
 
+#if UNITY_EDITOR
         /// <summary>
         /// Searches for a StateArray type that uses stateType as its generic argument
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public static Type GetStateArrayType(Type stateType)
+        public static bool EditorGetStateArrayType(Type stateType)
         {
-            Type genericBaseClass = typeof(StateArray<>);
-
-            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                foreach (Type type in assembly.GetTypes())
-                {
-                    if (!IsSubclassOfRawGeneric(genericBaseClass, type))
-                        continue;
-
-                    foreach (Type t in type.GetGenericArguments())
-                        Debug.Log("Found " + type.FullName + " with generic argument " + t.FullName);
-                }
-            }
-            return null;
+            // This turns out to be a very, very difficult problem to sovle in-editor. Punting until we figure this out.
+            return true;
         }
-
-        private static bool IsSubclassOfRawGeneric(Type generic, Type toCheck)
-        {
-            while (toCheck != null && toCheck != typeof(object))
-            {
-                var cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
-
-                if (generic == cur)
-                    return true;
-
-                toCheck = toCheck.BaseType;
-            }
-            return false;
-        }
+#endif
     }
 }

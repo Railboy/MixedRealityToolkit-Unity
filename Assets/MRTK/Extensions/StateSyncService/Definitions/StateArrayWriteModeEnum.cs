@@ -1,5 +1,6 @@
 ﻿namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 {
+
     public enum StateArrayWriteModeEnum
     {
         /// <summary>

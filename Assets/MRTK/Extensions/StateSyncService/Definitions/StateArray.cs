@@ -13,32 +13,42 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         public StateArray(IStatePipe statePipe)
         {
             this.statePipe = statePipe;
-            this.stateType = typeof(T);
+            StateType = typeof(T);
 
-            object[] attributes = stateType.GetCustomAttributes(typeof(StateDataConfigAttribute), true);            
-            if (attributes.Length > 0)
-            {   // If the state type defines a data type in a static field, use that
-                StateDataConfigAttribute config = (StateDataConfigAttribute)attributes[0];
-                this.dataType = config.DataType;
-                this.deliveryMode = config.DeliveryMode;
+            object[] attributes = StateType.GetCustomAttributes(typeof(StateDataConfigAttribute), true);
+            if (attributes.Length <= 0)
+            {
+                UnityEngine.Debug.LogError("State type " + StateType.FullName + " does not have an " + typeof(StateDataConfigAttribute).Name + ". You must add this attribute before it can be used in a state array.");
+                return;
             }
-            else
-            {   // Otherwise, use the hash code 
-                this.dataType = stateType.GetHashCode();
-                this.deliveryMode = DeliveryMode.UnreliableUnsequenced;
-            }
+
+            StateDataConfigAttribute config = (StateDataConfigAttribute)attributes[0];
+            DataType = config.DataType;
+            DeliveryMode = config.DeliveryMode;
+            FlushMode = config.FlushMode;
+            FlushInterval = config.FlushInterval;
         }
 
         /// <inheritdoc />
-        public Action<Type, short> OnStateChangedExternal { get; set; }
+        public event StateArrayEvent OnStateChangedExternal;
         /// <inheritdoc />
-        public Action<Type, short> OnStateChangedInternal { get; set; }
+        public event StateArrayEvent OnStateChangedInternal;
         /// <inheritdoc />
-        public int DataType => dataType;
+        public short DataType { get; private set; }
         /// <inheritdoc />
-        public Type StateType => stateType;
+        public Type StateType { get; private set; }
         /// <inheritdoc />
-        public DeliveryMode DeliveryMode => deliveryMode;
+        public DeliveryMode DeliveryMode { get; private set; }
+        /// <inheritdoc />
+        public FlushMode FlushMode { get; private set; }
+        /// <inheritdoc />
+        public float FlushInterval { get; private set; }
+        /// <inheritdoc />
+        public float TimeLastFlushed { get; private set; }
+        /// <inheritdoc />
+        public float TimeLastReceivedData { get; private set; }
+        /// <inheritdoc />
+        public float TimeLastSentData { get; private set; }
         /// <inheritdoc />
         public StateArrayWriteModeEnum WriteMode { get; set; }
         /// <inheritdoc />
@@ -60,6 +70,8 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 else { return states.Count; }
             }
         }
+        /// <inheritdoc />
+        public bool HasModifiedStates => modifiedStates.Count > 0;
 
         // Synchronized states
         private Dictionary<short, T> states = new Dictionary<short, T>();
@@ -70,10 +82,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         private HashSet<short> keys = new HashSet<short>();
         // A list of objects used for serialization when flushing
         private List<object> flushedStates = new List<object>();
-
-        private int dataType;
-        private DeliveryMode deliveryMode;
-        private Type stateType;
+        // The object we use to send flushed data
         private IStatePipe statePipe;
 
         /// <inheritdoc />
@@ -116,6 +125,8 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         /// <inheritdoc />
         public void ReceiveFlushedStates(IEnumerable<object> remoteStates)
         {
+            bool modified = false;
+
             foreach (T remoteValue in remoteStates)
             {
                 // If our local states don't contain this key, add it to states
@@ -146,6 +157,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                             modifiedStates[localValue.Key] = mergedState;
                             // Let subscribers know that the state has changed
                             OnStateChangedInternal?.Invoke(StateType, localValue.Key);
+                            modified = true;
                         }
                         else
                         {
@@ -165,14 +177,21 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 {
                     // If our modified states doesn't have an entry, just set the local state
                     states[remoteValue.Key] = remoteValue;
-
                     OnStateChangedInternal?.Invoke(StateType, localValue.Key);
+                    modified = true;
                 }
+            }
+
+            if (modified)
+            {   // Mark the time
+                TimeLastReceivedData = UnityEngine.Time.realtimeSinceStartup;
             }
         }
         /// <inheritdoc />
         public void Flush()
         {
+            TimeLastFlushed = UnityEngine.Time.realtimeSinceStartup;
+
             // On the server we copy our modified states into our states array
             // If any are still different, these changes are sent to clients via rpc call
             if (modifiedStates.Count > 0)
@@ -197,9 +216,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 if (flushedStates.Count > 0)
                 {
                     // Send the states remotely - it will be sent to everyone except us
-                    statePipe.SendFlushedStates(dataType, deliveryMode, flushedStates);
+                    statePipe.SendFlushedStates(DataType, DeliveryMode, flushedStates);
                     // Consume the states locally
                     ReceiveFlushedStates(flushedStates);
+                    // Mark the time
+                    TimeLastSentData = UnityEngine.Time.realtimeSinceStartup;
                 }
             }
         }
@@ -223,7 +244,12 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
                 if (flushedStates.Count > 0)
                 {
-                    statePipe.SendFlushedStates(dataType, deliveryMode, flushedStates);
+                    // Send the states remotely - it will be sent to everyone except us
+                    statePipe.SendFlushedStates(DataType, DeliveryMode, flushedStates);
+                    // Consume the states locally
+                    ReceiveFlushedStates(flushedStates);
+                    // Mark the time
+                    TimeLastSentData = UnityEngine.Time.realtimeSinceStartup;
                 }
             }
         }
@@ -253,7 +279,12 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
                 if (flushedStates.Count > 0)
                 {
-                    statePipe.SendFlushedStates(dataType, deliveryMode, flushedStates);
+                    // Send the states remotely - it will be sent to everyone except us
+                    statePipe.SendFlushedStates(DataType, DeliveryMode, flushedStates);
+                    // Consume the states locally
+                    ReceiveFlushedStates(flushedStates);
+                    // Mark the time
+                    TimeLastSentData = UnityEngine.Time.realtimeSinceStartup;
                 }
             }
         }
@@ -351,26 +382,6 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             return false;
         }
         /// <inheritdoc />
-        private short GetNextKey(short currentKey)
-        {
-            if (IsEmpty)
-                return -1;
-
-            IEnumerator<short> keyEnumerator = keys.GetEnumerator();
-            while (keyEnumerator.MoveNext())
-            {
-                if (keyEnumerator.Current == currentKey)
-                {
-                    if (keyEnumerator.MoveNext())
-                        return keyEnumerator.Current;
-
-                    break;
-                }
-            }
-
-            return -1;
-        }
-        /// <inheritdoc />
         public short GetNextAvailableKey()
         {
             if (IsEmpty)
@@ -440,6 +451,26 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                 foreach (short key in keys)
                     yield return modifiedStates.ContainsKey(key) ? modifiedStates[key] : states[key];
             }
+        }
+
+        private short GetNextKey(short currentKey)
+        {
+            if (IsEmpty)
+                return -1;
+
+            IEnumerator<short> keyEnumerator = keys.GetEnumerator();
+            while (keyEnumerator.MoveNext())
+            {
+                if (keyEnumerator.Current == currentKey)
+                {
+                    if (keyEnumerator.MoveNext())
+                        return keyEnumerator.Current;
+
+                    break;
+                }
+            }
+
+            return -1;
         }
 
         private struct StateArrayEnumerator<R> : IEnumerator<R> where R : struct, IState, IStateComparer<R>

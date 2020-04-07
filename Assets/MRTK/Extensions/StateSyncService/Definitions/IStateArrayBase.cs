@@ -12,18 +12,19 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         /// Called when an element has been changed from the outside
         /// Sends the type of the state and the key of the changed element
         /// </summary>
-        Action<Type, short> OnStateChangedExternal { get; set; }
+        event StateArrayEvent OnStateChangedExternal;
         /// <summary>
         /// Called when an element has been changed internally, typically by a server call
         /// Sends the type of the state and the key of the changed element
         /// </summary>
-        Action<Type, short> OnStateChangedInternal { get; set; }
+        event StateArrayEvent OnStateChangedInternal;
 
         /// <summary>
         /// The integer ID of the data type stored by this state array.
         /// Used with ISharingService's SendData method.
+        /// This value is drawn from the StateDataConfigAttribute found on its state type.
         /// </summary>
-        int DataType { get; }
+        short DataType { get; }
 
         /// <summary>
         /// The type of state stored by this array.
@@ -41,6 +42,41 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         /// Defines which operations are permitted.
         /// </summary>
         StateArrayWriteModeEnum WriteMode { get; set; }
+
+        /// <summary>
+        /// Defines flush behavior.
+        /// </summary>
+        FlushMode FlushMode { get; }
+
+        /// <summary>
+        /// Interval to use when FlushMode is set to FlushMode.Interval
+        /// </summary>
+        float FlushInterval { get; }
+
+        /// <summary>
+        /// Time when Flush was called, regardless of results.
+        /// Not set when calling Flush for specific keys.
+        /// Set using realTimeSinceStartup.
+        /// </summary>
+        float TimeLastFlushed { get; }
+
+        /// <summary>
+        /// Time when data was last received.
+        /// Not set when receive operation does not modify data.
+        /// Set using realTimeSinceStartup.
+        /// </summary>
+        float TimeLastReceivedData { get; }
+
+        /// <summary>
+        /// Time when data was last sent due to a Flush call.
+        /// Set using realTimeSinceStartup.
+        /// </summary>
+        float TimeLastSentData { get; }
+
+        /// <summary>
+        /// True if there are local modified states that can be flushed.
+        /// </summary>
+        bool HasModifiedStates { get; }
 
         /// <summary>
         /// Safety check for early initialization
@@ -107,4 +143,6 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         /// </summary>
         void AddState(IState newState);
     }
+
+    public delegate void StateArrayEvent(Type type, short key);
 }

@@ -88,6 +88,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         void Flush();
 
         /// <summary>
+        /// Flushes state array of type.
+        /// </summary>
+        void Flush(Type type);
+
+        /// <summary>
         /// Flushes object state array of type T.
         /// </summary>
         void Flush<T>() where T : struct, IState, IStateComparer<T>;

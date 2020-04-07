@@ -8,95 +8,6 @@ using System.Threading;
 
 namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 {
-    #region temp
-
-    /// <summary>
-    /// A simple interface used by state pipes to send flushed data.
-    /// This is to hide the complexities of the state sync service from the state arrays.
-    /// It also provides an opportunity to intercept state array flush events with a recording service.
-    /// </summary>
-    public interface IStatePipe
-    {
-        void SendFlushedStates(int dataType, DeliveryMode deliveryMode, List<object> flushedStates);
-    }
-
-    [Serializable, StateDataConfig(10)]
-    public struct DemoState : IState, IStateComparer<DemoState>
-    {
-        public short Key => Value;
-        public short Value;
-        public short RandomValue;
-
-        public bool IsDifferent(DemoState from)
-        {
-            return RandomValue != from.RandomValue;
-        }
-
-        public DemoState Merge(DemoState localValue, DemoState remoteValue)
-        {
-            if (localValue.RandomValue < remoteValue.RandomValue)
-            {
-                return localValue;
-            }
-            return remoteValue;
-        }
-
-        public override string ToString()
-        {
-            return StateUtils.StateToString(this);
-        }
-    }
-
-    [Serializable, StateDataConfig(11)]
-    public struct DemoState2 : IState, IStateComparer<DemoState2>
-    {
-        public short Key => Value;
-        public short Value;
-
-        public bool IsDifferent(DemoState2 from)
-        {
-            return false;
-        }
-
-        public DemoState2 Merge(DemoState2 localValue, DemoState2 remoteValue)
-        {
-            return remoteValue;
-        }
-
-        public override string ToString()
-        {
-            return StateUtils.StateToString(this);
-        }
-    }
-
-    [CreateAssetMenu(fileName = "DemoState", menuName = "MixedRealityToolkit/Sharing/DemoState")]
-    public class DemoTypes : StateGenerator
-    {
-        public override IEnumerable<Type> StateTypes { get { return new Type[] { typeof(DemoState), typeof(DemoState2) }; } }
-
-        public override void GenerateRequiredStates(IStateSyncService appState)
-        {
-            for (short i = 0; i < numDemos; i++)
-            {
-                appState.AddState<DemoState>(new DemoState() { Value = i });
-            }
-
-            for (short i = 0; i < numDemo2s; i++)
-            {
-                appState.AddState<DemoState2>(new DemoState2() { Value = i});
-            }
-        }
-
-        [SerializeField]
-        private int numDemos = 4;
-        [SerializeField]
-        private int numDemo2s = 3;
-
-        static StateArray<DemoState> DemoStateArray;
-        static StateArray<DemoState2> DemoStateArray2;
-    }
-
-    #endregion
 
     [MixedRealityExtensionService(SupportedPlatforms.WindowsStandalone | SupportedPlatforms.MacStandalone | SupportedPlatforms.LinuxStandalone | SupportedPlatforms.WindowsUniversal)]
     public class StateSyncService : BaseExtensionService, IStateSyncService, IStateSyncReadOnly, IMixedRealityExtensionService, IEnumerable<IStateArrayBase>, IStatePipe
@@ -153,7 +64,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         private ISharingService sharingService;
         private List<IStateArrayBase> stateList = new List<IStateArrayBase>();
         private Dictionary<Type, IStateArrayBase> stateLookupByStateType = new Dictionary<Type, IStateArrayBase>();
-        private Dictionary<int, IStateArrayBase> stateLookupByDataType = new Dictionary<int, IStateArrayBase>();
+        private Dictionary<short, IStateArrayBase> stateLookupByDataType = new Dictionary<short, IStateArrayBase>();
         private IStateSerializer stateSerializer;
 
         // Device IDs currently requesting synchronized states
@@ -299,12 +210,48 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                     activeSyncTasks.Remove(completedSyncTask);
                 }
             }
+
+            // Flush state arrays based on settings
+            foreach (IStateArrayBase stateArray in stateList)
+            {
+                switch (stateArray.FlushMode)
+                {
+                    case FlushMode.Manual:
+                    default:
+                        // Not our problem
+                        break;
+
+                    case FlushMode.Automatic:
+                        if (stateArray.HasModifiedStates)
+                        {   // If it has changed states, flush it
+                            stateArray.Flush();
+                        }
+                        break;
+
+                    case FlushMode.Interval:
+                        if (stateArray.HasModifiedStates)
+                        {   // If it has changed states, and we're past the interval, flush it
+                            float timeSinceFlushed = (Time.realtimeSinceStartup - stateArray.TimeLastFlushed);
+                            if (timeSinceFlushed > stateArray.FlushInterval)
+                            {
+                                stateArray.Flush();
+                            }
+                        }
+                        break;
+                }
+            }
         }
 
         public void Flush()
         {
             foreach (IStateArrayBase stateArray in stateList)
                 stateArray.Flush();
+        }
+
+        public void Flush(Type type)
+        {
+            IStateArrayBase stateArray = GetStateArray(type);
+            stateArray.Flush();
         }
 
         public void Flush<T>(IEnumerable<short> keys) where T : struct, IState, IStateComparer<T>
@@ -416,8 +363,8 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (e.Mode)
             {
-                case SubscriptionModeEnum.All:
-                case SubscriptionModeEnum.Default:
+                case SubscriptionMode.All:
+                case SubscriptionMode.Default:
                     return;
 
                 default:
@@ -427,7 +374,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             }
         }
 
-        private void OnDeviceConnected(DeviceEventArgs e)
+        private void OnDeviceConnected(DeviceInfo e)
         {
             if (!e.IsLocalDevice)
             {   // We only care about the local device
@@ -438,13 +385,13 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     // We need to request synchronized states from the server
                     sharingService.SendData(new SendDataArgs()
                     {
                         Type = DataTypeSyncRequest,
                         DeliveryMode = DeliveryMode.Reliable,
-                        SendMode = SendMode.SkipSender,
+                        TargetMode = TargetMode.SkipSender,
                     });
                     break;
 
@@ -541,20 +488,20 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             return stateArray != null;
         }
 
-        public void SendFlushedStates(int dataType, DeliveryMode deliveryMode, List<object> flushedStates)
+        public void SendFlushedStates(short dataType, DeliveryMode deliveryMode, List<object> flushedStates)
         {
             Type stateType = stateLookupByDataType[dataType].StateType;
 
             byte[] flushedStateBytes = stateSerializer.SerializeStateList(flushedStates, stateType);
 
-            if (sharingService.Status == ConnectStatus.Connected)
+            if (sharingService.Status == ConnectStatus.FullyConnected)
             {
                 sharingService.SendData(new SendDataArgs()
                 {
                     Type = dataType,
                     Data = flushedStateBytes,
                     DeliveryMode = deliveryMode,
-                    SendMode = SendMode.SkipSender,
+                    TargetMode = TargetMode.SkipSender,
                 });
             }
         }
@@ -563,7 +510,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     // This request is not handled by clients.
                     return;
 
@@ -579,11 +526,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             activeSyncTasks.Add(deviceID, SyncWithDeviceAsync(deviceID));
         }
 
-        public void ReceiveSynchronizedStates(int stateArrayDataType, byte[] synchronizedStates)
+        public void ReceiveSynchronizedStates(short stateArrayDataType, byte[] synchronizedStates)
         {
             switch (sharingService.AppRole)
             {
-                case AppRoleEnum.Client:
+                case AppRole.Client:
                     break;
 
                 default:
@@ -603,7 +550,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
             stateArray.ReceiveSynchronizedStates(states);
         }
 
-        private void ReceiveFlushedStates(int stateArrayDataType, byte[] flushedStatesBytes)
+        private void ReceiveFlushedStates(short stateArrayDataType, byte[] flushedStatesBytes)
         {
             if (!stateLookupByDataType.TryGetValue(stateArrayDataType, out IStateArrayBase stateArray))
             {
@@ -624,7 +571,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         private async Task SyncWithDeviceAsync(short deviceID)
         {
             List<object> states = new List<object>();
-            foreach (KeyValuePair<int, IStateArrayBase> stateArray in stateLookupByDataType)
+            foreach (KeyValuePair<short, IStateArrayBase> stateArray in stateLookupByDataType)
             {
                 // If this target isn't subscribed to this type, skip it
                 if (!sharingService.IsDeviceSubscribedToType(deviceID, stateArray.Key))
@@ -648,7 +595,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
                         Type = stateArray.Key,
                         Data = synchronizedStateBytes,
                         DeliveryMode = stateArray.Value.DeliveryMode,
-                        SendMode = SendMode.SkipSender
+                        TargetMode = TargetMode.SkipSender
                     });
 
                 await Task.Delay(stateSyncServiceProfile.DeviceSyncDelay);
