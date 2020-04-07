@@ -34,7 +34,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Editor
 
 			EditorGUILayout.Space();
 
-			if (service.Started && sharingService.NumConnectedDevices > 0)
+			if (service.Started && sharingService.NumAvailableDevices > 0)
 			{
 				foreach (DeviceTimeStatus status in service.DeviceTimeStatuses)
 				{
