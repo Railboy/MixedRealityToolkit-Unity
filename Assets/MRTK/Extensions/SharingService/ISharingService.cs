@@ -24,9 +24,9 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         string LobbyName { get; }
 
         /// <summary>
-        /// Name of joined room. Will be null until a room has been joined.
+        /// Info for joined room. Will be empty until a room has been joined.
         /// </summary>
-        string RoomName { get; }
+        RoomInfo CurrentRoom { get; }
 
         /// <summary>
         /// True if our local device has connected to the service.
@@ -39,14 +39,15 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         DeviceInfo LocalDevice { get; }
 
         /// <summary>
-        /// Info for all devices connected to room, including local device.
+        /// Info for all devices present in the room, including local device.
+        /// Some devices may not be connected - check ConnectStatus.
         /// </summary>
-        IEnumerable<DeviceInfo> ConnectedDevices { get; }
+        IEnumerable<DeviceInfo> AvailableDevices { get; }
 
         /// <summary>
-        /// Number of devices connected to room, including local device.
+        /// Number of devices present in the room, including local device.
         /// </summary>
-        int NumConnectedDevices { get; }
+        int NumAvailableDevices { get; }
 
         /// <summary>
         /// Names of all available rooms. Populated once service has connected to a lobby and have called FindRooms once.
@@ -105,6 +106,11 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         event DeviceEvent OnDeviceDisconnected;
 
         /// <summary>
+        /// Invoked when the properties of a device changes, including our own.
+        /// </summary>
+        event DeviceEvent OnDeviceUpdated;
+
+        /// <summary>
         /// Invoked when another device in our room calls PingDevice for this device.
         /// </summary>
         event PingEvent OnLocalDevicePinged;
@@ -128,7 +134,7 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         Task<bool> JoinLobby();
         
         /// <summary>
-        /// Joins a room with the supplied name.
+        /// Joins a room based on supplied configuration.
         /// </summary>
         Task<bool> JoinRoom(ConnectConfig config);
 

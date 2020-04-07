@@ -5,6 +5,9 @@ using System;
 
 namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
 {
+    /// <summary>
+    /// Enum describing the role of a device.
+    /// </summary>
     [Serializable]
     public enum AppRole : byte
     {
@@ -12,14 +15,17 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing
         /// The sharing app's role has not yet been defined.
         /// </summary>
         None = 0,  
+
         /// <summary>
         /// The app is considered a client.
         /// </summary>
         Client = 1,
+
         /// <summary>
         /// The app is considered a host.
         /// </summary>
         Host = 2,
+
         /// <summary>
         /// The app is considered a server. This should be used for dedicated-server analogue setups.
         /// </summary>
