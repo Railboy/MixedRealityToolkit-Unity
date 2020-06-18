@@ -623,16 +623,12 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
             {
                 case ClientState.ConnectingToNameServer:
                 case ClientState.Authenticating:
-                case ClientState.ConnectingToMasterServer:
                     return ConnectStatus.AttemptingToConnect;
 
-                case ClientState.ConnectedToMasterServer:
                 case ClientState.JoiningLobby:
                     return ConnectStatus.ConnectedToServer;
 
                 case ClientState.JoinedLobby:
-                case ClientState.ConnectingToGameServer:
-                case ClientState.ConnectedToGameServer:
                 case ClientState.Joining:
                     LobbyName = PhotonNetwork.CurrentLobby.Name;
                     return ConnectStatus.ConnectedToLobby;
@@ -645,8 +641,6 @@ namespace Microsoft.MixedReality.Toolkit.Extensions.Sharing.Photon
                 case ClientState.PeerCreated:
                 case ClientState.Disconnected:
                 case ClientState.Disconnecting:
-                case ClientState.DisconnectingFromGameServer:
-                case ClientState.DisconnectingFromMasterServer:
                 default:
                     return ConnectStatus.NotConnected;
             }
